@@ -241,6 +241,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        initPrayerView();
         density = getResources().getDisplayMetrics().density;
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
         Config cfg = Config.load(this);
@@ -590,6 +591,41 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     };
 
+    private static final float PRAYER_TOP_DP = 14f;
+    private android.widget.TextView prayerView;
+
+    private void initPrayerView() {
+        prayerView = new android.widget.TextView(this);
+        prayerView.setTextColor(0xE6FFFFFF);
+        prayerView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14);
+        prayerView.setGravity(android.view.Gravity.CENTER);
+        prayerView.setShadowLayer(6f, 0f, 2f, 0xFF000000);
+        prayerView.setFocusable(false);
+        prayerView.setVisibility(android.view.View.GONE);
+        android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                android.view.Gravity.TOP | android.view.Gravity.CENTER_HORIZONTAL);
+        lp.topMargin = (int) (PRAYER_TOP_DP * getResources().getDisplayMetrics().density);
+        addContentView(prayerView, lp);
+    }
+
+    private void updatePrayerView() {
+        if (prayerView == null) return;
+        String[] t = PrayerTimes.lines(this);
+        if (t == null) {
+            prayerView.setVisibility(android.view.View.GONE);
+            return;
+        }
+        prayerView.setText(t[0] + "\n" + t[1]);
+        prayerView.setVisibility(android.view.View.VISIBLE);
+    }
+
+    private void refreshPrayerTimes() {
+        updatePrayerView();
+        PrayerTimes.refreshIfDue(this, this::updatePrayerView);
+    }
+
     /** Fetches the week's places in the background, then switches the rotation to them. */
     private void refreshPlacesIfDue() {
         if (!placesMode || placesRefreshRunning || !PlaceWallpapers.due(this)) return;
@@ -658,6 +694,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     protected void onResume() {
+        refreshPrayerTimes();
         super.onResume();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(packageReceiver, packageFilter, Context.RECEIVER_NOT_EXPORTED);
