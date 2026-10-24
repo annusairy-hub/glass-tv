@@ -598,10 +598,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void initPrayerView() {
         prayerView = new android.widget.TextView(this);
         prayerView.setTextColor(0xE6FFFFFF);
-        prayerView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14);
+        prayerView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 17);
         prayerView.setGravity(android.view.Gravity.CENTER);
         prayerView.setShadowLayer(6f, 0f, 2f, 0xFF000000);
         prayerView.setFocusable(false);
+        // prayer style v2
+        prayerView.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        float pd = getResources().getDisplayMetrics().density;
+        android.graphics.drawable.GradientDrawable pbg =
+                new android.graphics.drawable.GradientDrawable();
+        pbg.setColor(0x80000000);
+        pbg.setCornerRadius(12f * pd);
+        prayerView.setBackground(pbg);
+        prayerView.setPadding((int) (16f * pd), (int) (8f * pd),
+                (int) (16f * pd), (int) (8f * pd));
         prayerView.setVisibility(android.view.View.GONE);
         android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(
                 android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -623,7 +633,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private static final float WEATHER_LEFT_DP = 24f;
-    private static final float WEATHER_TOP_DP = 12f;
+    private static final float WEATHER_TOP_DP = 6f;
     private WeatherView weatherView;
 
     private void initWeatherView() {
