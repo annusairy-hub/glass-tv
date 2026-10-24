@@ -618,6 +618,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
                 android.view.Gravity.TOP | android.view.Gravity.CENTER_HORIZONTAL);
         lp.topMargin = (int) (PRAYER_TOP_DP * getResources().getDisplayMetrics().density);
+        // prayer style v3 (minimal)
+        float d3 = getResources().getDisplayMetrics().density;
+        prayerView.setBackground(null);
+        prayerView.setTypeface(android.graphics.Typeface.create(
+                "sans-serif-light", android.graphics.Typeface.NORMAL));
+        prayerView.setGravity(android.view.Gravity.START);
+        prayerView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 15);
+        prayerView.setPadding(0, 0, 0, 0);
+        prayerView.setLineSpacing(0f, 1.1f);
+        lp.gravity = android.view.Gravity.TOP | android.view.Gravity.START;
+        lp.leftMargin = (int) (PRAYER_LEFT_DP * d3);
+        lp.topMargin = (int) (PRAYER_TOP3_DP * d3);
         addContentView(prayerView, lp);
     }
 
@@ -628,7 +640,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             prayerView.setVisibility(android.view.View.GONE);
             return;
         }
-        prayerView.setText(t[0] + "\n" + t[1]);
+        prayerView.setText(styledPrayer(t));
         prayerView.setVisibility(android.view.View.VISIBLE);
     }
 
@@ -663,6 +675,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void refreshWeather() {
         updateWeatherView();
         Weather.refreshIfDue(this, this::updateWeatherView);
+    }
+
+    private static final float PRAYER_LEFT_DP = 24f;
+    private static final float PRAYER_TOP3_DP = 118f;
+
+    private CharSequence styledPrayer(String[] t) {
+        android.text.SpannableString sp =
+                new android.text.SpannableString(t[0] + "\n" + t[1]);
+        int n = t[0].length();
+        sp.setSpan(new android.text.style.AbsoluteSizeSpan(16, true),
+                0, n, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        sp.setSpan(new android.text.style.AbsoluteSizeSpan(12, true),
+                n + 1, sp.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        sp.setSpan(new android.text.style.ForegroundColorSpan(0xA6FFFFFF),
+                n + 1, sp.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return sp;
     }
 
     private void refreshPrayerTimes() {
