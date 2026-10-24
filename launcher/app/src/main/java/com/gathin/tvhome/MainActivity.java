@@ -242,6 +242,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initPrayerView();
+        initWeatherView();
         density = getResources().getDisplayMetrics().density;
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
         Config cfg = Config.load(this);
@@ -621,6 +622,39 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         prayerView.setVisibility(android.view.View.VISIBLE);
     }
 
+    private static final float WEATHER_LEFT_DP = 24f;
+    private static final float WEATHER_TOP_DP = 12f;
+    private WeatherView weatherView;
+
+    private void initWeatherView() {
+        weatherView = new WeatherView(this);
+        weatherView.setVisibility(android.view.View.GONE);
+        android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                android.view.Gravity.TOP | android.view.Gravity.START);
+        float d = getResources().getDisplayMetrics().density;
+        lp.leftMargin = (int) (WEATHER_LEFT_DP * d);
+        lp.topMargin = (int) (WEATHER_TOP_DP * d);
+        addContentView(weatherView, lp);
+    }
+
+    private void updateWeatherView() {
+        if (weatherView == null) return;
+        Weather.Now n = Weather.read(this);
+        if (n == null) {
+            weatherView.setVisibility(android.view.View.GONE);
+            return;
+        }
+        weatherView.setWeather(n.temp, n.code, n.day);
+        weatherView.setVisibility(android.view.View.VISIBLE);
+    }
+
+    private void refreshWeather() {
+        updateWeatherView();
+        Weather.refreshIfDue(this, this::updateWeatherView);
+    }
+
     private void refreshPrayerTimes() {
         updatePrayerView();
         PrayerTimes.refreshIfDue(this, this::updatePrayerView);
@@ -695,6 +729,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         refreshPrayerTimes();
+        refreshWeather();
         super.onResume();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(packageReceiver, packageFilter, Context.RECEIVER_NOT_EXPORTED);
