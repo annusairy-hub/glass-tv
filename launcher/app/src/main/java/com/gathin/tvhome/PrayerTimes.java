@@ -18,13 +18,34 @@ import java.util.TimeZone;
 
 /** Waktu solat (JAKIM e-Solat, Langkawi). Fetched once a day in the background. */
 public final class PrayerTimes {
+    public static final class Day {
+        public final String[] names;
+        public final String[] times;
+        public final int next;
+        public final String hijri;
+
+        Day(String[] names, String[] times, int next, String hijri) {
+            this.names = names;
+            this.times = times;
+            this.next = next;
+            this.hijri = hijri;
+        }
+    }
+
     private static final String ZONE = "KDH06";
     private static final String API =
         "https://www.e-solat.gov.my/index.php?r=esolatApi/takwimsolat&period=today&zone=" + ZONE;
-    private static final String[] KEYS = {"fajr", "dhuhr", "asr", "maghrib", "isha"};
-    private static final String[] NAMES = {"Subuh", "Zohor", "Asar", "Maghrib", "Isyak"};
+    private static final String[] KEYS = {"fajr", "syuruk", "dhuhr", "asr", "maghrib", "isha"};
+    private static final String[] NAMES = {"Subuh", "Syuruk", "Zohor", "Asar", "Maghrib", "Isyak"};
+    private static final int[] FIVE = {0, 2, 3, 4, 5};
+    private static final String[] MONTHS = {"MUHARRAM", "SAFAR", "RABIULAWAL", "RABIULAKHIR",
+        "JAMADILAWAL", "JAMADILAKHIR", "REJAB", "SYAABAN", "RAMADAN", "SYAWAL",
+        "ZULKAEDAH", "ZULHIJJAH"};
     private static final TimeZone MY = TimeZone.getTimeZone("Asia/Kuala_Lumpur");
     private static volatile boolean running;
+
+    /** Set once the new panel replaces the old two-line text. */
+    public static volatile boolean legacyOff;
 
     private PrayerTimes() {}
 
@@ -40,7 +61,10 @@ public final class PrayerTimes {
 
     public static void refreshIfDue(final Context ctx, final Runnable onDone) {
         final Context app = ctx.getApplicationContext();
-        if (running || today().equals(prefs(app).getString("day", ""))) return;
+        SharedPreferences have = prefs(app);
+        if (running || (today().equals(have.getString("day", "")) && have.contains("syuruk"))) {
+            return;
+        }
         running = true;
         new Thread(() -> {
             boolean ok = false;
@@ -55,6 +79,7 @@ public final class PrayerTimes {
                     }
                     e.putString(k, v.substring(0, 5));
                 }
+                e.putString("hijri", row.optString("hijri", ""));
                 e.putString("day", today()).apply();
                 ok = true;
             } catch (Exception ignored) {
@@ -91,16 +116,39 @@ public final class PrayerTimes {
         }
     }
 
-    /** {"Seterusnya: Maghrib 19:04", "Subuh 05:57   Zohor 13:07 ..."} or null if not cached yet. */
+    /** All six times for today with the next one marked, or null if not cached yet. */
+    public static Day today(Context ctx) {
+        SharedPreferences p = prefs(ctx);
+        if (!today().equals(p.getString("day", ""))) return null;
+        String[] times = new String[KEYS.length];
+        for (int i = 0; i < KEYS.length; i++) {
+            times[i] = p.getString(KEYS[i], "");
+            if (times[i].length() < 5) return null;
+        }
+        Calendar now = Calendar.getInstance(MY);
+        int cur = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE);
+        int next = 0; // after Isyak the next one is Subuh
+        for (int i = 0; i < times.length; i++) {
+            if (minutes(times[i]) > cur) {
+                next = i;
+                break;
+            }
+        }
+        return new Day(NAMES, times, next, hijriLabel(p.getString("hijri", "")));
+    }
+
+    /** Old two-line text, kept so the earlier patches still compile. */
     public static String[] lines(Context ctx) {
+        if (legacyOff) return null;
         SharedPreferences p = prefs(ctx);
         if (!today().equals(p.getString("day", ""))) return null;
         Calendar now = Calendar.getInstance(MY);
         int cur = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE);
-        int next = 0; // after Isyak the next one is Subuh
+        int next = 0;
         boolean found = false;
         StringBuilder all = new StringBuilder();
-        for (int i = 0; i < KEYS.length; i++) {
+        for (int j = 0; j < FIVE.length; j++) {
+            int i = FIVE[j];
             String t = p.getString(KEYS[i], "");
             if (t.length() < 5) return null;
             if (all.length() > 0) all.append("   ");
@@ -112,6 +160,19 @@ public final class PrayerTimes {
         }
         String nt = p.getString(KEYS[next], "");
         return new String[]{"Seterusnya: " + NAMES[next] + " " + nt, all.toString()};
+    }
+
+    private static String hijriLabel(String raw) {
+        try {
+            String[] a = raw.split("-");
+            int y = Integer.parseInt(a[0]);
+            int m = Integer.parseInt(a[1]);
+            int d = Integer.parseInt(a[2]);
+            if (m < 1 || m > 12) return "";
+            return d + " " + MONTHS[m - 1] + " " + y + "H";
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private static int minutes(String hhmm) {
