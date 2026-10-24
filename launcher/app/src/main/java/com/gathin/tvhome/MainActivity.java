@@ -243,6 +243,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         setContentView(R.layout.activity_main);
         initPrayerView();
         HomeInfo.attach(this);
+        QuoteView.attach(this);
         /* weather off */
         density = getResources().getDisplayMetrics().density;
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
