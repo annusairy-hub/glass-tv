@@ -103,7 +103,8 @@ public final class HomeInfo {
                 return;
             }
             SpannableStringBuilder sb = new SpannableStringBuilder();
-            sb.append(Math.round(n.temp) + "\u00B0 " + Weather.label(n.code));
+            sb.append(Weather.icon(n.code, n.day) + " " + Math.round(n.temp)
+        + "\u00B0C " + Weather.label(n.code) + " \u00B7 Langkawi");
             sb.setSpan(new ForegroundColorSpan(0xF2FFFFFF), 0, sb.length(),
                     Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             if (n.aqi >= 0) {
